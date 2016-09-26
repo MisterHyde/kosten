@@ -24,10 +24,6 @@ class Kostenio():
         except FileNotFoundError:
             x = '<p>Datei nicht gefunden</p>'
 
-        print("File: " + self.filename)
-        print("Dict:")
-        pprint.pprint(x)
-
         return x
 
     def getKey(self):

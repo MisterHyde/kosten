@@ -1,3 +1,36 @@
 input {
 	margin: 5px;
 }
+
+.betrag {
+	width: 60px;
+}
+.bezeichnung {
+	width: 150px;
+}
+.datum {
+	width: 100px;
+}
+.typ {
+	width: 150px;
+}
+
+.main { position:relative; padding:0 0 0 55px; }
+#sidebar {
+    position:absolute;
+    top:0; bottom:0; left:0;
+    background:#000;
+	float:left;
+}
+
+#header { border:1px solid #000; width:90%; height:15%; 
+    margin:0 0 5px 0;
+}
+#content {  
+	position:relative;
+	width:90%; height:70%;
+    margin:15px 15px 15px 15px;
+}
+#footer { border:1px solid #000; width:90%; height:15%;
+    margin:5px 0 0 0;
+}

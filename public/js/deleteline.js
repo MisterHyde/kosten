@@ -1,3 +1,5 @@
 function deleteLine(pId){
-	$("#line" + pId).remove();	
+	if(window.confirm('Wirklich löschen?')){
+		$("#line" + pId).remove();	
+	}
 }

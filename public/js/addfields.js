@@ -7,20 +7,37 @@ function addFields(){
 	number =  parseInt(number) + 1;
 	document.getElementById("counter").value = number;
 
-	var betrag = document.getElementById("container").appendChild(document.createElement("input"));
+	var section = document.getElementById("container").appendChild(document.createElement("section"));
+	section.setAttribute('id', 'line' + number);
+	
+	var betrag = section.appendChild(document.createElement("input"));
 	betrag.setAttribute('type', 'text');
 	betrag.setAttribute('name', "betrag" + number);
+	betrag.setAttribute('class', 'betrag');
 
-	var bezeichnung = document.getElementById("container").appendChild(document.createElement("input"));
+	var bezeichnung = section.appendChild(document.createElement("input"));
 	bezeichnung.setAttribute('type', 'text');
 	bezeichnung.setAttribute('name', "bezeichnung" + number);
+	bezeichnung.setAttribute('class', 'bezeichnung');
 
-	var datum = document.getElementById("container").appendChild(document.createElement("input"));
+	var datum = section.appendChild(document.createElement("input"));
 	datum.setAttribute('type', 'text');
 	datum.setAttribute('name', 'datum' + number);
 	datum.setAttribute('class', 'datepicker');
 
-	document.getElementById("container").appendChild(document.createElement("br"));
+	var typ = section.appendChild(document.createElement("input"));
+	typ.setAttribute('type', 'text');
+	typ.setAttribute('name', 'typ' + number);
+	typ.setAttribute('class', 'typ');
+
+	var button = section.appendChild(document.createElement("button"));
+	button.setAttribute('type', 'button');
+	button.setAttribute('id', 'button' + number);
+	button.setAttribute('onclick', 'deleteLine(' + number + ')');
+	button.appendChild(document.createTextNode('Delete'));
+
+	//document.getElementById("container").appendChild(document.createElement("br"));
+	section.appendChild(document.createElement("br"));
 
 	$( ".datepicker" ).datepicker({
 		altFormat: "dd-mm-yy"

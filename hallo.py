@@ -1,12 +1,20 @@
+# -*- coding: utf-8 -*-
 import os.path
 from src.kostenio import Kostenio
-import pprint as pprint
 
 import cherrypy
 
 class Page():
     def header(self):
-        title = 'Kostenrechner'
+        try:
+            da = self.title
+        except AttributeError:
+            self.title = 'Kostenuebersicht'
+        try:
+            da = self.autocomplete
+        except AttributeError:
+            self.autocomplete = ''
+            
         return """
 <!doctype html>
 <html lang="en">
@@ -21,13 +29,15 @@ class Page():
     <script src="/static/js/addfields.js"></script> 
     <script src="/static/js/datepicker.js"></script>
     <script src="/static/js/deleteline.js"></script>
+    <script type"text/javascript">%s</script>
 </head>
 <body>
-<!--<script>$.session.set("counter", 1)</script>-->
-""" % (title)
+<div class="main">
+""" % (self.title, self.autocomplete)
 
     def footer(self):
         return """
+</div>
 </body>
 </html>
 """
@@ -44,50 +54,52 @@ class Kosten(Page):
 
     @cherrypy.expose
     def index(self, **kwargs):
+        self.createAutocomplete()
         self.title = 'Start'
         counter = 0
         # Start
-        form2 = '<form action="save" method="GET" id="werte">'
+        form2 = '<div id="content">'
+        form2 += '<form action="save" method="GET" id="werte">'
         form2 += '<fieldset id="container">'
         vals = self.kostenio.loadValues()
-        # for i in range(1, len(vals['bezeichnung'])):
-        for i in vals['bezeichnung'].keys():
+
+        for i in vals['betrag'].keys():
             counter += 1
-            betrag = vals['betrag'][str(i)]
-            bezeichnung = vals['bezeichnung'][str(i)]
-            datum = vals['datum'][str(i)]
-            form2 += '<div id="line%s">' % (counter)
-            form2 += '<input type="text" name="betrag%s" value="%s" id="betrag%s" class="line%s">' % (counter,betrag,counter,counter)
-            form2 += '<input type="text" name="bezeichnung%s" value="%s" id="bezeichnung%s" class="line%s">' % (counter,bezeichnung, counter,counter)
-            form2 += '<input type="text" class="datepicker" name="datum%s" value="%s" id="date%s" class="line%s">' % (counter,datum,counter,counter)
-            form2 += '<button type="button" id="deletebutton" onclick="deleteLine(%s) class="line%s"">Delete</button><br>' % (counter,counter)
-            form2 += '</div>'
+            namen = dict()
+            for k in vals.keys():
+                namen[k] = vals[k][str(i)]
+
+            form2 += '<section id="line%s">' % (counter)
+            form2 += '<input type="text" name="betrag%s" value="%s" id="betrag%s" class="betrag">' % (
+                    counter,namen['betrag'],counter)
+            form2 += '<input type="text" name="bezeichnung%s" value="%s" id="bezeichnung%s" class="bezeichnung">' % (
+                    counter,namen['bezeichnung'], counter)
+            form2 += '<input type="text" class="datepicker" name="datum%s" value="%s" id="date%s">' % (
+                    counter,namen['datum'],counter)
+            form2 += '<input type="text" name="typ%s" value="%s" id="typ%s" class="typ">' % (
+                    counter,namen['typ'], counter)
+            form2 += '<button type="button" id="deletebutton" onclick="deleteLine(%s)">Delete</button><br>' % (counter)
+            form2 += '</section>'
 
         form2 +='</fieldset>'
-        form2 +='<label for="betrag1"></label>'
-        form2 +='<label for="bezeichnung1"></label>'
-        form2 +='<label for="date1"></label>'
         form2 += '<input type="submit" value="submit">'
         form2 += '<button type="button" onclick="addFields()">Neue Zeile</button>'
         form2 += '</form>'
+        form2 += '</div>'
 
-        # End
         hiddencounter = '<input type="hidden" value="%s" id="counter">' % (counter)
-        form = '<form action="save" method="GET" id="werte">'
-        form += '<fieldset id="container">'
-        form += '<input type="text" name="betrag1" value="" id="betrag1">'
-        form += '<input type="text" name="bezeichnung1">'
-        form += '<input type="text" class="datepicker" name="datum1"><br>'
-        form +=' </fieldset>'
-        form += '<input type="submit" value="submit">'
-        form += '<button type="button" onclick="addFields()">Neue Zeile</button>'
-        form += '</form>'
-
-        content = self.header() + hiddencounter
-        # content += form
-        content += form2 + self.footer()
+        content = self.header() + hiddencounter + form2 + self.sidebar() + self.footer()
         
-        return content + self.footer()
+        return content
+
+    def sidebar(self):
+        aside = '<aside></aside'
+        sidebar = '<div id="sidebar">'
+        sidebar += '<a href="/">Input</a><br>'
+        sidebar += '<a href="/displayPie">Statistik</a><br>'
+        sidebar += '</div>'
+
+        return sidebar
 
     @cherrypy.expose
     def save(self, **kwargs):
@@ -96,6 +108,7 @@ class Kosten(Page):
         betrag = {}
         bezeichnung = {}
         datum = {}
+        typ = {}
         for k in kwargs:
             content += '%s => %s<br>' % (k,kwargs[k])
             # cont[k[:-1]].update({k[-1:]: kwargs[k]})
@@ -105,33 +118,54 @@ class Kosten(Page):
                 datum[k[-1:]] = kwargs[k]
             if k[:-1] == 'betrag' and kwargs[k] != '':
                 betrag[k[-1:]] = kwargs[k]
+            if k[:-1] == 'typ' and kwargs[k] != '':
+                typ[k[-1:]] = kwargs[k]
 
             cont['bezeichnung'] = bezeichnung
             cont['datum'] = datum
             cont['betrag'] = betrag
+            cont['typ'] = typ
 
         self.kostenio.storeValues(cont)
         # Leitet einen direkt wieder weiter zu startseite
-        return '<html><head><meta http-equiv="refresh" content="0;  /"/></head></html>'
+        return '<html><head><meta http-equiv="refresh" content="0;  /displayPie"/></head></html>'
 
     @cherrypy.expose
-    def displayPie(self):
+    def displayPie(self, pie=''):
         import matplotlib.pyplot as plt
         import numpy as np
+        self.title = 'Select Graph'
+
+        content = '<section id="selectPie">'
+        content += '''<button type="button" onclick="location.href = '/displayPie?pie=lines'">Lines</button>'''
+        content += '''<button type="button" onclick="location.href = '/displayPie?pie=typ'">Typ</button>'''
+        content += '</section>'
+
+        pieType = ''
+        if pie == 'lines' :
+            pieType = 'bezeichnung'
+        elif pie == 'typ':
+            pieType = 'typ'
+
+        if pieType != '':
+            content = self.createPie(plt, np, pieType)
+        
+
+        return self.header() + self.sidebar() + content + self.footer()
+
+    # Creates a pie chart for the given name values
+    def createPie(self, plt, np, name):
         entries = self.kostenio.loadValues()
         categorys = list()
         tmp = dict()
 
-        for i in entries['bezeichnung'].keys():
-            print("\n\n");
-            pprint.pprint(entries['bezeichnung']);
-            print("\n\n");
-            if entries['bezeichnung'][str(i)] in tmp.keys():
-                tmp[entires['bezeichnung'][str(i)]] += float(entries['betrag'][str(i)])
+        for i in entries[name].keys():
+            if entries[name][str(i)] in tmp.keys():
+                tmp[entries[name][str(i)]] += float(entries['betrag'][str(i)].replace(',','.'))
             else:
-                tmp[entries['bezeichnung'][str(i)]] = float(entries['betrag'][str(i)])
+                tmp[entries[name][str(i)]] = float(entries['betrag'][str(i)].replace(',','.'))
 
-            categorys.append(entries['bezeichnung'][str(i)])
+            categorys.append(entries[name][str(i)])
             
         vals = list()
         labels = list()
@@ -148,7 +182,51 @@ class Kosten(Page):
         plt.savefig(self.absDir + '/public/img/tmp.png');
         content = '<!DOCTYPE html><html><body><img src="/static/img/tmp.png">'
         content += self.back('/')+'</body></html>'
+
         return content
+
+    # Create JS autocomplete Lists and Functions
+    def createAutocomplete(self):
+        vals = self.kostenio.loadValues()
+        li = []
+        try:
+            for v in vals['bezeichnung'].values():
+                li.append('"%s"' % (v))
+
+            nameTags = ','.join(li)
+        except KeyError:
+            nameTags = ''
+
+        li = []
+        try:
+            for v in vals['typ'].values():
+                li.append('"%s"' %(v))
+
+            typTags = ','.join(li)
+        except KeyError:
+            typTags = ''
+
+        self.autocomplete = '''
+        $(function() {
+            var nameTags = [
+                %s
+            ];
+            $(".bezeichnung").autocomplete({
+                source: nameTags
+            });
+        });
+        ''' % ( nameTags )
+
+        self.autocomplete += '''
+        $(function() {
+            var typTags = [
+                %s
+            ];
+            $(".typ").autocomplete({
+                source: typTags
+            });
+        });
+        ''' % ( typTags )
 
 tutconf = os.path.join(os.path.dirname(__file__), 'hallo.conf')
 
