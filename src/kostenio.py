@@ -22,7 +22,7 @@ class Kostenio():
             # JSON = '{' + almostJSON + '}'
             x = json.loads(JSON)
         except FileNotFoundError:
-            x = '<p>Datei nicht gefunden</p>'
+            x = -1
 
         return x
 

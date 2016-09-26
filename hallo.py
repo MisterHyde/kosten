@@ -63,21 +63,24 @@ class Kosten(Page):
         form2 += '<fieldset id="container">'
         vals = self.kostenio.loadValues()
 
+        if vals == -1:
+            vals = {'betrag': {'1':''}, 'bezeichnung': {'1':''}, 'datum': {'1':''}, 'typ': {'1':''}}
+
         for i in vals['betrag'].keys():
             counter += 1
-            namen = dict()
+            value = dict()
             for k in vals.keys():
-                namen[k] = vals[k][str(i)]
+                value[k] = vals[k][str(i)]
 
-            form2 += '<section id="line%s">' % (counter)
+            form2 += '<section id="line%d">' % (counter)
             form2 += '<input type="text" name="betrag%s" value="%s" id="betrag%s" class="betrag">' % (
-                    counter,namen['betrag'],counter)
+                    counter,value['betrag'],counter)
             form2 += '<input type="text" name="bezeichnung%s" value="%s" id="bezeichnung%s" class="bezeichnung">' % (
-                    counter,namen['bezeichnung'], counter)
+                    counter,value['bezeichnung'], counter)
             form2 += '<input type="text" class="datepicker" name="datum%s" value="%s" id="date%s">' % (
-                    counter,namen['datum'],counter)
+                    counter,value['datum'],counter)
             form2 += '<input type="text" name="typ%s" value="%s" id="typ%s" class="typ">' % (
-                    counter,namen['typ'], counter)
+                    counter,value['typ'], counter)
             form2 += '<button type="button" id="deletebutton" onclick="deleteLine(%s)">Delete</button><br>' % (counter)
             form2 += '</section>'
 
@@ -128,7 +131,7 @@ class Kosten(Page):
 
         self.kostenio.storeValues(cont)
         # Leitet einen direkt wieder weiter zu startseite
-        return '<html><head><meta http-equiv="refresh" content="0;  /displayPie"/></head></html>'
+        return '<html><head><meta http-equiv="refresh" content="0;  /"/></head></html>'
 
     @cherrypy.expose
     def displayPie(self, pie=''):
@@ -181,7 +184,7 @@ class Kosten(Page):
         plt.legend(patches, labels, loc='center left', bbox_to_anchor=(-0.1, 1.), fontsize=10)
         plt.savefig(self.absDir + '/public/img/tmp.png');
         content = '<!DOCTYPE html><html><body><img src="/static/img/tmp.png">'
-        content += self.back('/')+'</body></html>'
+        content += self.back('/displayPie')+'</body></html>'
 
         return content
 
@@ -194,7 +197,7 @@ class Kosten(Page):
                 li.append('"%s"' % (v))
 
             nameTags = ','.join(li)
-        except KeyError:
+        except:
             nameTags = ''
 
         li = []
@@ -203,7 +206,7 @@ class Kosten(Page):
                 li.append('"%s"' %(v))
 
             typTags = ','.join(li)
-        except KeyError:
+        except:
             typTags = ''
 
         self.autocomplete = '''
