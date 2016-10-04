@@ -22,7 +22,7 @@ function addFields(){
 	var bezeichnung = newCell.appendChild(document.createElement("input"));
 	bezeichnung.setAttribute('type', 'text');
 	bezeichnung.setAttribute('name', "bezeichnung" + number);
-	bezeichnung.setAttribute('class', 'bezeichnung');
+	bezeichnung.setAttribute('class', 'bezeichnung ui-autocomplete-input');
 	bezeichnung.setAttribute('form', 'werte');
 
 	var newCell = newRow.insertCell();
@@ -30,6 +30,7 @@ function addFields(){
 	typ.setAttribute('type', 'text');
 	typ.setAttribute('name', 'typ' + number);
 	typ.setAttribute('class', 'typ');
+	typ.setAttribute('id', 'typ' + number);
 	typ.setAttribute('form', 'werte');
 
 	var newCell = newRow.insertCell();

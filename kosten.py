@@ -24,7 +24,7 @@ class Page():
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>%s</title>
     <link rel="stylesheet" href="/static/css/main.css";
-    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script src="/static/js/addfields.js"></script> 
@@ -227,45 +227,57 @@ class Kosten(Page):
     # Create JS autocomplete Lists and Functions
     def createAutocomplete(self):
         vals = self.kostenio.loadValues()
-        li = []
-        try:
-            for v in vals['bezeichnung'].values():
-                li.append('"%s"' % (v))
+        self.autocomplete = ''
+        tags = dict()
+        for u in ['typ']:
+            li = []
+            try:
+                for v in vals[u].values():
+                    w = v.split(',')
+                    for x in w:
+                        y = '"%s"' % (x)
+                        if not y in li:
+                            li.append(y)
+                            print(y)
 
-            nameTags = ','.join(li)
-        except:
-            nameTags = ''
+                tags[u] = ','.join(li)
+            except:
+                tags[u] = ''
 
-        li = []
-        try:
-            for v in vals['typ'].values():
-                li.append('"%s"' %(v))
-
-            typTags = ','.join(li)
-        except:
-            typTags = ''
-
-        self.autocomplete = '''
-        $(function() {
-            var nameTags = [
-                %s
-            ];
-            $(".bezeichnung").autocomplete({
-                source: nameTags
+            self.autocomplete += '''
+            $(function() {
+                var %sTags = [
+                    %s
+                ];
+                $(".%s").autocomplete({
+                    source: %sTags
+                });
             });
-        });
-        ''' % ( nameTags )
+            ''' % ( u, tags[u], u, u )
 
-        self.autocomplete += '''
-        $(function() {
-            var typTags = [
-                %s
-            ];
-            $(".typ").autocomplete({
-                source: typTags
-            });
-        });
-        ''' % ( typTags )
+        # li = []
+        # try:
+            # for v in vals['typ'].values():
+                # w = '"%s"' % (v)
+                # if not w in li:
+                    # li.append(w)
+                    # print(w)
+
+            # typTags = ','.join(li)
+        # except:
+            # typTags = ''
+
+
+        # self.autocomplete += '''
+        # $(function() {
+            # var typTags = [
+                # %s
+            # ];
+            # $(".typ").autocomplete({
+                # source: typTags
+            # });
+        # });
+        # ''' % ( typTags )
 
 tutconf = os.path.join(os.path.dirname(__file__), 'hallo.conf')
 
