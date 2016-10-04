@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os 
 import os.path
 from src.kostenio import Kostenio
 
@@ -50,7 +51,7 @@ class Kosten(Page):
 
     localDir = os.path.dirname(__file__)
     absDir = os.path.join(os.getcwd(), localDir)
-    kostenio = Kostenio(absDir+"/src/test")
+    kostenio = Kostenio(absDir+"/src/data/")
 
     @cherrypy.expose
     def index(self, **kwargs):
@@ -59,8 +60,14 @@ class Kosten(Page):
         counter = 0
         # Start
         form2 = '<div id="content">'
-        form2 += '<form action="save" method="GET" id="werte">'
-        form2 += '<fieldset id="container">'
+        form2 += '<table id="table"><tr>'
+        form2 += '<th>Betrag</th>'
+        form2 += '<th>Bezeichnung</th>'
+        form2 += '<th>Typ</th>'
+        form2 += '<th>Datum</th>'
+        form2 += '<th> </th>'
+        form2 += '</tr>'
+        # form2 += '<fieldset id="container">'
         vals = self.kostenio.loadValues()
 
         if vals == -1:
@@ -72,19 +79,33 @@ class Kosten(Page):
             for k in vals.keys():
                 value[k] = vals[k][str(i)]
 
-            form2 += '<section id="line%d">' % (counter)
-            form2 += '<input type="text" name="betrag%s" value="%s" id="betrag%s" class="betrag">' % (
-                    counter,value['betrag'],counter)
-            form2 += '<input type="text" name="bezeichnung%s" value="%s" id="bezeichnung%s" class="bezeichnung">' % (
-                    counter,value['bezeichnung'], counter)
-            form2 += '<input type="text" class="datepicker" name="datum%s" value="%s" id="date%s">' % (
+            # form2 += '<section id="line%d">' % (counter)
+            form2 += '<tr id="line%d">' % (counter)
+            for l in ['betrag', 'bezeichnung', 'typ']:
+                form2 += '<td>'
+                form2 += '<input type="text"'
+                form2 += 'name="%s%s"' %(l, counter)
+                form2 += 'value="%s"' %(value[l])
+                form2 += 'id="%s%s"' %(l,counter)
+                form2 += 'class="%s"' %(l)
+                form2 += 'form="werte"'
+                form2 += '></td>'
+            # form2 += '<input type="text" name="betrag%s" value="%s" id="betrag%s" class="betrag" form=>' % (
+                    # counter,value['betrag'],counter)
+            # form2 += '<input type="text" name="bezeichnung%s" value="%s" id="bezeichnung%s" class="bezeichnung">' % (
+                    # counter,value['bezeichnung'], counter)
+            form2 += '<td><input type="text" class="datepicker" name="datum%s" value="%s" id="date%s"></td' % (
                     counter,value['datum'],counter)
-            form2 += '<input type="text" name="typ%s" value="%s" id="typ%s" class="typ">' % (
-                    counter,value['typ'], counter)
-            form2 += '<button type="button" id="deletebutton" onclick="deleteLine(%s)">Delete</button><br>' % (counter)
-            form2 += '</section>'
+            # form2 += '<input type="text" name="typ%s" value="%s" id="typ%s" class="typ">' % (
+                    # counter,value['typ'], counter)
+            form2 += '<td><button type="button" id="deletebutton" onclick="deleteLine(%s)">Delete</button></td>' % (
+                    counter)
+            # form2 += '</section>'
+            form2 += '</tr>'
 
-        form2 +='</fieldset>'
+        # form2 +='</fieldset>'
+        form2 += '</table>'
+        form2 += '<form action="save" method="GET" id="werte">'
         form2 += '<input type="submit" value="submit">'
         form2 += '<button type="button" onclick="addFields()">Neue Zeile</button>'
         form2 += '</form>'
@@ -134,15 +155,24 @@ class Kosten(Page):
         return '<html><head><meta http-equiv="refresh" content="0;  /"/></head></html>'
 
     @cherrypy.expose
-    def displayPie(self, pie=''):
+    def displayPie(self, pie='', date=''):
         import matplotlib.pyplot as plt
         import numpy as np
         self.title = 'Select Graph'
+        dates = os.listdir(self.absDir + '/src/data/')
 
         content = '<section id="selectPie">'
-        content += '''<button type="button" onclick="location.href = '/displayPie?pie=lines'">Lines</button>'''
-        content += '''<button type="button" onclick="location.href = '/displayPie?pie=typ'">Typ</button>'''
-        content += '</section>'
+        content += '<table>'
+        for dt in dates:
+            if date[-5:] == '.json':
+                content += '<tr><td>'
+                content += '%s: ' %(dt[:-5])
+                content += '''<button type="button" onclick="location.href = '/displayPie?pie=lines&date=%s'">
+                Lines</button>''' %(dt[:-5])
+                content += '''<button type="button" onclick="location.href = '/displayPie?pie=typ&date=%s'">
+                Typ</button>''' %(dt[:-5])
+                content += '''</td></tr>'''
+        content += '</table></section>'
 
         pieType = ''
         if pie == 'lines' :
@@ -151,14 +181,15 @@ class Kosten(Page):
             pieType = 'typ'
 
         if pieType != '':
-            content = self.createPie(plt, np, pieType)
+            content = self.createPie(plt, np, pieType, date)
         
 
         return self.header() + self.sidebar() + content + self.footer()
 
     # Creates a pie chart for the given name values
-    def createPie(self, plt, np, name):
-        entries = self.kostenio.loadValues()
+    def createPie(self, plt, np, name, date):
+        entries = self.kostenio.loadValues(date + '.json')
+
         categorys = list()
         tmp = dict()
 

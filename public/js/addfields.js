@@ -7,6 +7,7 @@ function addFields(){
 	number =  parseInt(number) + 1;
 	document.getElementById("counter").value = number;
 
+	var table = document.getElementById("table").getElementsByTagName("tbody")[0];
 	var section = document.getElementById("container").appendChild(document.createElement("section"));
 	section.setAttribute('id', 'line' + number);
 	
