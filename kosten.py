@@ -77,7 +77,10 @@ class Kosten(Page):
             counter += 1
             value = dict()
             for k in vals.keys():
-                value[k] = vals[k][str(i)]
+                try:
+                    value[k] = vals[k][str(i)]
+                except:
+                    value[k] = ''
 
             # form2 += '<section id="line%d">' % (counter)
             form2 += '<tr id="line%d">' % (counter)
@@ -94,8 +97,7 @@ class Kosten(Page):
                     # counter,value['betrag'],counter)
             # form2 += '<input type="text" name="bezeichnung%s" value="%s" id="bezeichnung%s" class="bezeichnung">' % (
                     # counter,value['bezeichnung'], counter)
-            form2 += '<td><input type="text" class="datepicker" name="datum%s" value="%s" id="date%s"></td' % (
-                    counter,value['datum'],counter)
+            form2 += '<td><input type="text" class="datepicker" name="datum%s" value="%s" id="date%s" form="werte"></td>' % (counter,value['datum'],counter)
             # form2 += '<input type="text" name="typ%s" value="%s" id="typ%s" class="typ">' % (
                     # counter,value['typ'], counter)
             form2 += '<td><button type="button" id="deletebutton" onclick="deleteLine(%s)">Delete</button></td>' % (
@@ -127,6 +129,9 @@ class Kosten(Page):
 
     @cherrypy.expose
     def save(self, **kwargs):
+        print("save")
+        import pprint
+        pprint.pprint(kwargs)
         content = ''
         cont = {}
         betrag = {}
