@@ -42,7 +42,7 @@ class Kostenio():
 
         try:
             f = open(filename, 'w')
-            f.write(json.dumps(values))
+            f.write(json.dumps(values,False,True,True,True,None,3))
             f.close()
             success = 1
         except:

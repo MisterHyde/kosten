@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 import os 
 import os.path
 from src.kostenio import Kostenio
@@ -55,6 +56,9 @@ class Kosten(Page):
 
     @cherrypy.expose
     def index(self, **kwargs):
+        if any(kwargs):
+            print("save!")
+            self.save(kwargs)
         self.createAutocomplete()
         self.title = 'Start'
         counter = 0
@@ -107,7 +111,7 @@ class Kosten(Page):
 
         # form2 +='</fieldset>'
         form2 += '</table>'
-        form2 += '<form action="save" method="GET" id="werte">'
+        form2 += '<form action="save" method="POST" id="werte">'
         form2 += '<input type="submit" value="submit">'
         form2 += '<button type="button" onclick="addFields()">Neue Zeile</button>'
         form2 += '</form>'
@@ -133,27 +137,29 @@ class Kosten(Page):
         import pprint
         pprint.pprint(kwargs)
         content = ''
-        cont = {}
+        cont = {'bezeichnung':{}, 'datum':{}, 'betrag':{}, 'typ':{}}
         betrag = {}
         bezeichnung = {}
         datum = {}
         typ = {}
         for k in kwargs:
             content += '%s => %s<br>' % (k,kwargs[k])
-            # cont[k[:-1]].update({k[-1:]: kwargs[k]})
-            if k[:-1] == 'bezeichnung' and kwargs[k] != '':
-                bezeichnung[k[-1:]] = kwargs[k]
-            if k[:-1] == 'datum' and kwargs[k] != '':
-                datum[k[-1:]] = kwargs[k]
-            if k[:-1] == 'betrag' and kwargs[k] != '':
-                betrag[k[-1:]] = kwargs[k]
-            if k[:-1] == 'typ' and kwargs[k] != '':
-                typ[k[-1:]] = kwargs[k]
+            for typename in ['bezeichnung', 'datum', 'betrag', 'typ']:
+                if (typename in k) and (kwargs[k] != ''):
+                    cont[typename][re.sub(typename, '', k)] = (kwargs[k])
+            # if ('bezeichnung' in k) and (kwargs[k] != ''):
+                # bezeichnung[re.sub('bezeichnung', '',k)] = kwargs[k]
+            # if ('datum' in k) and (kwargs[k] != ''):
+                # datum[re.sub('datum', '', k)] = kwargs[k]
+            # if ('betrag' in k) and (kwargs[k] != ''):
+                # betrag[k[-1:]] = kwargs[k]
+            # if ('typ' in k) and (kwargs[k] != ''):
+                # typ[k[-1:]] = kwargs[k]
 
-            cont['bezeichnung'] = bezeichnung
-            cont['datum'] = datum
-            cont['betrag'] = betrag
-            cont['typ'] = typ
+            # cont['bezeichnung'] = bezeichnung
+            # cont['datum'] = datum
+            # cont['betrag'] = betrag
+            # cont['typ'] = typ
 
         self.kostenio.storeValues(cont)
         # Leitet einen direkt wieder weiter zu startseite
@@ -300,3 +306,5 @@ if __name__ == '__main__':
         }
     }
     cherrypy.quickstart(Kosten(), '/', config=config)
+
+# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
