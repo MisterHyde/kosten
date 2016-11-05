@@ -2,125 +2,155 @@
 import re
 import os 
 import os.path
+import pprint
+import datetime
 from src.kostenio import Kostenio
+from html import Page
 
 import cherrypy
 
-class Page():
-    def header(self):
-        try:
-            da = self.title
-        except AttributeError:
-            self.title = 'Kostenuebersicht'
-        try:
-            da = self.autocomplete
-        except AttributeError:
-            self.autocomplete = ''
-            
-        return """
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>%s</title>
-    <link rel="stylesheet" href="/static/css/main.css";
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <script src="/static/js/addfields.js"></script> 
-    <script src="/static/js/datepicker.js"></script>
-    <script src="/static/js/deleteline.js"></script>
-    <script type"text/javascript">%s</script>
-</head>
-<body>
-<div class="main">
-""" % (self.title, self.autocomplete)
-
-    def footer(self):
-        return """
-</div>
-</body>
-</html>
-"""
-
-    def back(self, path):
-        return '<a href=' + path + '>back</a>'
+# TODO Cover also the amount on the bank account
+# TODO A better way to insert and display datas ( maybe like an excel sheet with different tabs and a table )
 
 
 class Kosten(Page):
 
-    localDir = os.path.dirname(__file__)
-    absDir = os.path.join(os.getcwd(), localDir)
-    kostenio = Kostenio(absDir+"/src/data/")
+    def __init__(self):
+        self.localDir = os.path.dirname(__file__)
+        self.absDir = os.path.join(os.getcwd(), self.localDir)
+        self.ausgabenDB = Kostenio(self.absDir+"src/data/", 'ausgaben')
+        self.kontenDB = Kostenio(self.absDir+"src/data/", 'konten')
+        self.debug = True
+
+    def tabAusgaben(self, monat=''):
+        # self.emptyEntries()
+        vals = self.ausgabenDB.loadValues(monat)
+        self.log(vals)
+        table = """<table id='table'>
+        <tr>
+            <th class=bord>Betrag</th>
+            <th class=bord>Was</th>
+            <th class=bord>Typ</th>
+            <th class=bord>Datum</th>
+            <th> </th>
+        </tr>
+        """
+        # TODO linebreak if the content of the 'Was' row cell is to long
+        # TODO Sort entries by date
+        # Counter is an index for the rows because the javascript function which inserts new lines isn't
+        # consistent in the creation of new indices
+        counter = 1
+        # If no file exists then create an empty row else fill the table with the entries
+        if isinstance(vals, dict) or len(vals['betrag']) == 0:
+            for i in vals['betrag'].keys():
+                table += """<tr id=line%s>""" %(counter)
+                table += """
+                <td class=bord><input class="betrag" name="betrag%s" type="text" value="%s"</td>""" %(
+                        counter, vals['betrag'][i])
+                table += """
+                <td class=bord><input class="bezeichnung" name="bezeichnung%s" type="text" value="%s"></td>""" %(
+                        counter, vals['bezeichnung'][i])
+                table += """
+                <td class=bord><input class="typ" name="typ%s" type="text" value="%s"></td>""" %(counter, vals['typ'][i])
+                table += """
+                <td class=bord><input type="text" class="datepicker" name="datum%s" value="%s" id="date%s"></td>""" %(
+                        counter, vals['datum'][i], counter)
+                table += """
+                <td><button type="button" id="deletebutton" onclick"deleteLine(%s)">Delete</button></td>
+                </tr>""" %(counter)
+                counter += 1
+
+        else:
+            table += """<tr id=line%s>""" %(counter)
+            table += """
+            <td class=bord><input class="betrag" name="betrag%s" type="text"</td>""" %(
+                    counter)
+            table += """
+            <td class=bord><input class="bezeichnung" name="bezeichnung%s" type="text"></td>""" %(
+                    counter)
+            table += """
+            <td class=bord><input class="typ" name="typ%s" type="text"></td>""" %(counter)
+            table += """
+            <td class=bord><input type="text" class="datepicker" name="datum%s" id="date%s"></td>""" %(
+                    counter, counter)
+            table += """
+            <td><button type="button" id="deletebutton" onclick"deleteLine(%s)">Delete</button></td>
+            </tr>""" %(counter)
+
+        table += "</table"
+
+        buttons = '<button type="button" onclick="addRow()">Neue Zeile</button>'
+        buttons += '<input type="submit" value="submit" form="werte">'
+        # Create dropdown menu for choosing another month
+        buttons += '<select style="margin-left:20px" form="monat" name="monat">'
+        last = len(self.ausgabenDB.listAusgaben())
+        count = 1
+        for b in self.ausgabenDB.listAusgaben():
+            buttons += '<option value="%s" form="monat" name="monat"' %(b)
+            # Select the fitting select entry
+            if (b == monat) or ((monat == '') and (count == last)):
+                buttons += ' selected="selected" '
+            buttons += '>%s</option>' %(b)
+            count += 1
+        buttons += '</select>'
+        buttons += '<input type="submit" value="refresh" form="monat">'
+        if monat == '':
+            monat = datetime.datetime.now().strftime('%m-%Y') + ".json"
+        hiddencounter = '<input type="hidden" value="%s" id="counter">' % (counter)
+        forms = '<form action="save" method="POST" name="werte"><input type="hidden" value="%s" id="werte">%s</form>' %(monat, hiddencounter)
+        forms += '<form action="index" method="POST" id="monat">%s</form>' %(hiddencounter)
+
+        return buttons + hiddencounter + forms + table
+
+    # @cherrypy.expose
+    # def loadMonat(self, **kwargs):
+        # self.log('loadMonat')
+        # self.log(kwargs)
+        # try:
+            # self.emptyEntries()
+            # self.addEntry(self.tabAusgaben(kwargs['monat']), "Ausgaben")
+            # self.addEntry(self.tabKonten(), "Konten")
+            
+            # return self.header() + self.tabsDiv() + self.footer()
+        # except:
+            # self.index
+
+
+    def tabKonten(self):
+        vals = self.kontenDB.loadValues()
+        edit = '<div id="edit">'
+        edit += '<button id="newDepo" onclick="newDepo()"></button>'
+        edit += '</div>'
+
+        uebersicht = edit
+        auszug = ''
+
+        konten = Page()
+        konten.addEntry(uebersicht, "Übersicht")
+        konten.addEntry(auszug, "Auszüge")
+
+        return konten.tabsDiv()
+
 
     @cherrypy.expose
     def index(self, **kwargs):
-        if any(kwargs):
-            print("save!")
-            self.save(kwargs)
-        self.createAutocomplete()
-        self.title = 'Start'
-        counter = 0
-        # Start
-        form2 = '<div id="content">'
-        form2 += '<table id="table"><tr>'
-        form2 += '<th>Betrag</th>'
-        form2 += '<th>Bezeichnung</th>'
-        form2 += '<th>Typ</th>'
-        form2 += '<th>Datum</th>'
-        form2 += '<th> </th>'
-        form2 += '</tr>'
-        # form2 += '<fieldset id="container">'
-        vals = self.kostenio.loadValues()
-
-        if vals == -1:
-            vals = {'betrag': {'1':''}, 'bezeichnung': {'1':''}, 'datum': {'1':''}, 'typ': {'1':''}}
-
-        for i in vals['betrag'].keys():
-            counter += 1
-            value = dict()
-            for k in vals.keys():
-                try:
-                    value[k] = vals[k][str(i)]
-                except:
-                    value[k] = ''
-
-            # form2 += '<section id="line%d">' % (counter)
-            form2 += '<tr id="line%d">' % (counter)
-            for l in ['betrag', 'bezeichnung', 'typ']:
-                form2 += '<td>'
-                form2 += '<input type="text"'
-                form2 += 'name="%s%s"' %(l, counter)
-                form2 += 'value="%s"' %(value[l])
-                form2 += 'id="%s%s"' %(l,counter)
-                form2 += 'class="%s"' %(l)
-                form2 += 'form="werte"'
-                form2 += '></td>'
-            # form2 += '<input type="text" name="betrag%s" value="%s" id="betrag%s" class="betrag" form=>' % (
-                    # counter,value['betrag'],counter)
-            # form2 += '<input type="text" name="bezeichnung%s" value="%s" id="bezeichnung%s" class="bezeichnung">' % (
-                    # counter,value['bezeichnung'], counter)
-            form2 += '<td><input type="text" class="datepicker" name="datum%s" value="%s" id="date%s" form="werte"></td>' % (counter,value['datum'],counter)
-            # form2 += '<input type="text" name="typ%s" value="%s" id="typ%s" class="typ">' % (
-                    # counter,value['typ'], counter)
-            form2 += '<td><button type="button" id="deletebutton" onclick="deleteLine(%s)">Delete</button></td>' % (
-                    counter)
-            # form2 += '</section>'
-            form2 += '</tr>'
-
-        # form2 +='</fieldset>'
-        form2 += '</table>'
-        form2 += '<form action="save" method="POST" id="werte">'
-        form2 += '<input type="submit" value="submit">'
-        form2 += '<button type="button" onclick="addFields()">Neue Zeile</button>'
-        form2 += '</form>'
-        form2 += '</div>'
-
-        hiddencounter = '<input type="hidden" value="%s" id="counter">' % (counter)
-        content = self.header() + hiddencounter + form2 + self.sidebar() + self.footer()
+        self.log('index()')
+        self.log(kwargs)
+        if kwargs == {}:
+            self.emptyEntries()
+            self.addEntry(self.tabAusgaben(), "Ausgaben")
+            self.log(self.tabsDiv())
+            self.addEntry(self.tabKonten(), "Konten")
+            self.log(self.tabsDiv())
+        else:
+            self.emptyEntries()
+            self.addEntry(self.tabAusgaben(kwargs['monat']), "Ausgaben")
+            self.log(self.tabsDiv())
+            self.addEntry(self.tabKonten(), "Konten")
+            self.log(self.tabsDiv())
         
-        return content
+        return self.header() + self.tabsDiv() + self.footer()
+
 
     def sidebar(self):
         aside = '<aside></aside'
@@ -134,8 +164,6 @@ class Kosten(Page):
     @cherrypy.expose
     def save(self, **kwargs):
         print("save")
-        import pprint
-        pprint.pprint(kwargs)
         content = ''
         cont = {'bezeichnung':{}, 'datum':{}, 'betrag':{}, 'typ':{}}
         betrag = {}
@@ -147,21 +175,8 @@ class Kosten(Page):
             for typename in ['bezeichnung', 'datum', 'betrag', 'typ']:
                 if (typename in k) and (kwargs[k] != ''):
                     cont[typename][re.sub(typename, '', k)] = (kwargs[k])
-            # if ('bezeichnung' in k) and (kwargs[k] != ''):
-                # bezeichnung[re.sub('bezeichnung', '',k)] = kwargs[k]
-            # if ('datum' in k) and (kwargs[k] != ''):
-                # datum[re.sub('datum', '', k)] = kwargs[k]
-            # if ('betrag' in k) and (kwargs[k] != ''):
-                # betrag[k[-1:]] = kwargs[k]
-            # if ('typ' in k) and (kwargs[k] != ''):
-                # typ[k[-1:]] = kwargs[k]
 
-            # cont['bezeichnung'] = bezeichnung
-            # cont['datum'] = datum
-            # cont['betrag'] = betrag
-            # cont['typ'] = typ
-
-        self.kostenio.storeValues(cont)
+        self.ausgabenDB.storeValues(cont,kwargs['monat'])
         # Leitet einen direkt wieder weiter zu startseite
         return '<html><head><meta http-equiv="refresh" content="0;  /"/></head></html>'
 
@@ -199,7 +214,7 @@ class Kosten(Page):
 
     # Creates a pie chart for the given name values
     def createPie(self, plt, np, name, date):
-        entries = self.kostenio.loadValues(date + '.json')
+        entries = self.ausgabenDB.loadValues(date + '.json')
 
         categorys = list()
         tmp = dict()
@@ -232,7 +247,7 @@ class Kosten(Page):
 
     # Create JS autocomplete Lists and Functions
     def createAutocomplete(self):
-        vals = self.kostenio.loadValues()
+        vals = self.ausgabenDB.loadValues()
         self.autocomplete = ''
         tags = dict()
         for u in ['typ']:
@@ -284,6 +299,10 @@ class Kosten(Page):
             # });
         # });
         # ''' % ( typTags )
+
+    def log(self, msg):
+        if self.debug:
+            pprint.pprint(msg)
 
 tutconf = os.path.join(os.path.dirname(__file__), 'hallo.conf')
 

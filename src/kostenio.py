@@ -6,14 +6,33 @@ import datetime
 class Kostenio():
 
 
-    def __init__(self, filename):
+    def __init__(self, path, typ, month='curr'):
         now = datetime.datetime.now()
-        self.filename = filename + datetime.datetime.now().strftime('%m-%Y') + '.json'
+        self.path = path
+        if typ == 'ausgaben':
+            self.filename = path + datetime.datetime.now().strftime('%m-%Y') + '.json'
+        else:
+            self.filename = path + 'konten.json'
+
+    def listAusgaben(self):
+        ausgaben = subprocess.check_output(['ls', '%s' %(self.path)]) 
+        ausgaben = ausgaben.decode('utf-8')
+        ausgaben = ausgaben.split('\n')
+        ret = list()
+        for b in ausgaben:
+            if "-" in b:
+               ret.append(b) 
+        pprint.pprint(ret)
+        return ret
 
     def loadValues(self, filename=''):
         if filename == '':
             filename = self.filename
+        else:
+            filename = self.path + filename
         try:
+            print("Filename")
+            pprint.pprint(filename)
             f = open(filename, 'r')
             JSON = f.read()
             f.close()
@@ -39,6 +58,8 @@ class Kostenio():
     def storeValues(self, values, filename=''):
         if filename == '':
             filename = self.filename
+        else:
+            filename = self.path + filename
 
         try:
             f = open(filename, 'w')
@@ -49,4 +70,4 @@ class Kostenio():
             success = -1
 
         return success
-            
+
