@@ -1,7 +1,13 @@
 class Page():
+    start = 0
     tabs = 0
     listNames = ''
     listContent = ''
+
+    def __init__(self, start=0):
+        self.start = start
+        self.tabs = start
+
     def header(self):
         try:
             da = self.title
@@ -19,7 +25,7 @@ class Page():
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>%s</title>
-    <link rel="stylesheet" href="/static/css/main.css";
+    <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/jquery-ui.css">
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
@@ -45,13 +51,13 @@ class Page():
             %s
             </ul>
             %s
-        </div>
+        </div> <!-- .tabs -->
         """ %( self.listNames, self.listContent )
 
 
     def footer(self):
         return """
-</div>
+</div> <!-- #main -->
 </body>
 </html>
 """
@@ -67,11 +73,11 @@ class Page():
         """ %(self.tabs, name)
         self.listContent += """<div id="tabs-%u">
         %s
-        </div>
-        """ %(self.tabs, content)
+        </div> <!-- .tabs-%u -->
+        """ %(self.tabs, content, self.tabs)
 
     def emptyEntries(self):
-        self.tabs = 0
+        self.tabs = self.start
         self.listNames = ''
         self.listContent = ''
 
@@ -94,7 +100,7 @@ class Page():
             # <td>%s</td>
             # <td>%s</td>
             # <td>%s</td>
-            # <td><button type="button" id="deletebutton" onclick"deleteLine(%s)">Delete</button></td>
+            # <td><button type="button" id="deletebutton" onclick"=deleteLine(%s)">Delete</button></td>
             # </tr>
             # """ %(cdatas['betrag'][i], cdatas['bezeichnung'][i], cdatas['typ'][i], cdatas['datum'][i], i)
 

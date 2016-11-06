@@ -41,11 +41,11 @@ class Kosten(Page):
         # consistent in the creation of new indices
         counter = 1
         # If no file exists then create an empty row else fill the table with the entries
-        if isinstance(vals, dict) or len(vals['betrag']) == 0:
+        if isinstance(vals, dict) or (not isinstance(vals, int) and (len(vals['betrag']) == 0)):
             for i in vals['betrag'].keys():
                 table += """<tr id=line%s>""" %(counter)
                 table += """
-                <td class=bord><input class="betrag" name="betrag%s" type="text" value="%s"</td>""" %(
+                <td class=bord><input class="betrag" name="betrag%s" type="text" value="%s"></td>""" %(
                         counter, vals['betrag'][i])
                 table += """
                 <td class=bord><input class="bezeichnung" name="bezeichnung%s" type="text" value="%s"></td>""" %(
@@ -63,7 +63,7 @@ class Kosten(Page):
         else:
             table += """<tr id=line%s>""" %(counter)
             table += """
-            <td class=bord><input class="betrag" name="betrag%s" type="text"</td>""" %(
+            <td class=bord><input class="betrag" name="betrag%s" type="text"></td>""" %(
                     counter)
             table += """
             <td class=bord><input class="bezeichnung" name="bezeichnung%s" type="text"></td>""" %(
@@ -77,7 +77,7 @@ class Kosten(Page):
             <td><button type="button" id="deletebutton" onclick"deleteLine(%s)">Delete</button></td>
             </tr>""" %(counter)
 
-        table += "</table"
+        table += "</table>"
 
         buttons = '<button type="button" onclick="addRow()">Neue Zeile</button>'
         buttons += '<input type="submit" value="submit" form="werte">'
@@ -85,13 +85,18 @@ class Kosten(Page):
         buttons += '<select style="margin-left:20px" form="monat" name="monat">'
         last = len(self.ausgabenDB.listAusgaben())
         count = 1
-        for b in self.ausgabenDB.listAusgaben():
-            buttons += '<option value="%s" form="monat" name="monat"' %(b)
-            # Select the fitting select entry
-            if (b == monat) or ((monat == '') and (count == last)):
-                buttons += ' selected="selected" '
-            buttons += '>%s</option>' %(b)
-            count += 1
+        if last != 0:
+            for b in self.ausgabenDB.listAusgaben():
+                buttons += '<option value="%s" form="monat" name="monat"' %(b)
+                # Select the fitting select entry
+                if (b == monat) or ((monat == '') and (count == last)):
+                    buttons += ' selected="selected" '
+                buttons += '>%s</option>' %(b)
+                count += 1
+        # If no entry available use the current month
+        else:
+            buttons += '<option value="%s.json" form="monat" name="monat">%s</option>' %(
+                    datetime.datetime.now().strftime('%m-%Y'), datetime.datetime.now().strftime('%m-%Y'))
         buttons += '</select>'
         buttons += '<input type="submit" value="refresh" form="monat">'
         if monat == '':
@@ -101,19 +106,6 @@ class Kosten(Page):
         forms += '<form action="index" method="POST" id="monat">%s</form>' %(hiddencounter)
 
         return buttons + hiddencounter + forms + table
-
-    # @cherrypy.expose
-    # def loadMonat(self, **kwargs):
-        # self.log('loadMonat')
-        # self.log(kwargs)
-        # try:
-            # self.emptyEntries()
-            # self.addEntry(self.tabAusgaben(kwargs['monat']), "Ausgaben")
-            # self.addEntry(self.tabKonten(), "Konten")
-            
-            # return self.header() + self.tabsDiv() + self.footer()
-        # except:
-            # self.index
 
 
     def tabKonten(self):
@@ -131,23 +123,23 @@ class Kosten(Page):
 
         return konten.tabsDiv()
 
+    def tabGraphen(self):
+        blub = 'Sonnenblumen verhangene Genitalien.'
+        return blub
 
     @cherrypy.expose
     def index(self, **kwargs):
         self.log('index()')
         self.log(kwargs)
+        self.emptyEntries()
+
         if kwargs == {}:
-            self.emptyEntries()
             self.addEntry(self.tabAusgaben(), "Ausgaben")
-            self.log(self.tabsDiv())
-            self.addEntry(self.tabKonten(), "Konten")
-            self.log(self.tabsDiv())
         else:
-            self.emptyEntries()
             self.addEntry(self.tabAusgaben(kwargs['monat']), "Ausgaben")
-            self.log(self.tabsDiv())
-            self.addEntry(self.tabKonten(), "Konten")
-            self.log(self.tabsDiv())
+        
+        self.addEntry(self.tabKonten(), "Konten")
+        self.addEntry(self.tabGraphen(), "Graphen")
         
         return self.header() + self.tabsDiv() + self.footer()
 
