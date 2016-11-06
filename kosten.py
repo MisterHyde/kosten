@@ -56,7 +56,7 @@ class Kosten(Page):
                 <td class=bord><input type="text" class="datepicker" name="datum%s" value="%s" id="date%s"></td>""" %(
                         counter, vals['datum'][i], counter)
                 table += """
-                <td><button type="button" id="deletebutton" onclick"deleteLine(%s)">Delete</button></td>
+                <td><button type="button" id="deletebutton" onclick="deleteLine(%s)">Delete</button></td>
                 </tr>""" %(counter)
                 counter += 1
 
